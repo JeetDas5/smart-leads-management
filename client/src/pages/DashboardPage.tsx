@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import * as React from "react";
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useState } from "react";
 import { useAuthStore } from "@/src/store/auth";
 import { useLeadStore } from "@/src/store/lead";
-import type { Lead } from "@/src/store/lead";
+import type { Lead, FetchLeadsParams } from "@/src/store/lead";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -16,6 +16,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useNavigate } from "@tanstack/react-router";
@@ -70,23 +80,24 @@ const DashboardPage = () => {
 
   const navigate = useNavigate();
 
-  const [search, setSearch] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("all");
-  const [sourceFilter, setSourceFilter] = React.useState("all");
-  const [salespersonFilter, setSalespersonFilter] = React.useState("all");
-  const [sortOrder, setSortOrder] = React.useState("latest");
-  const [currentPage, setCurrentPage] = React.useState(1);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [salespersonFilter, setSalespersonFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState("latest");
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const [isFormOpen, setIsFormOpen] = React.useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
-  const [formMode, setFormMode] = React.useState<"create" | "edit">("create");
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [leadToDeleteId, setLeadToDeleteId] = useState<string | null>(null);
 
-  
-  const [leadName, setLeadName] = React.useState("");
-  const [leadEmail, setLeadEmail] = React.useState("");
-  const [leadStatus, setLeadStatus] = React.useState("new");
-  const [leadSource, setLeadSource] = React.useState("instagram");
-  const [editLeadId, setEditLeadId] = React.useState("");
+  const [leadName, setLeadName] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
+  const [leadStatus, setLeadStatus] = useState("new");
+  const [leadSource, setLeadSource] = useState("instagram");
+  const [editLeadId, setEditLeadId] = useState("");
 
   const handleLogout = () => {
     logout();
@@ -103,7 +114,7 @@ const DashboardPage = () => {
       .slice(0, 2);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchStats();
     if (user?.role === "admin") {
       fetchSalespersons();
@@ -111,7 +122,7 @@ const DashboardPage = () => {
   }, [user]);
 
   const loadLeads = () => {
-    const params: any = {
+    const params: FetchLeadsParams = {
       page: currentPage,
       limit: 10,
       sort: sortOrder,
@@ -133,7 +144,7 @@ const DashboardPage = () => {
     fetchLeads(params);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadLeads();
   }, [
     currentPage,
@@ -159,11 +170,14 @@ const DashboardPage = () => {
     setCurrentPage(1);
   };
 
-  const refreshAll = () => {
+  const refreshAll = (isManual: boolean = false) => {
     fetchStats();
     loadLeads();
     if (user?.role === "admin") {
       fetchSalespersons();
+    }
+    if (isManual) {
+      toast.success("Data refreshed successfully!");
     }
   };
 
@@ -194,12 +208,15 @@ const DashboardPage = () => {
       }
       setIsFormOpen(false);
       refreshAll();
-    } catch (err: any) {
-      toast.error(err.message || "Failed to submit form.");
+    } catch (err) {
+      if (err instanceof Error) {
+        toast.error(err.message || "Failed to submit form.");
+      } else {
+        toast.error("Failed to submit form.");
+      }
     }
   };
 
-  // Open form in Create mode
   const openCreateModal = () => {
     setFormMode("create");
     setLeadName("");
@@ -209,7 +226,6 @@ const DashboardPage = () => {
     setIsFormOpen(true);
   };
 
-  // Open form in Edit mode
   const openEditModal = (lead: Lead) => {
     setFormMode("edit");
     setEditLeadId(lead._id);
@@ -220,26 +236,29 @@ const DashboardPage = () => {
     setIsFormOpen(true);
   };
 
-  // View Single Lead details
   const openDetailsModal = (lead: Lead) => {
     setCurrentLead(lead);
     setIsDetailsOpen(true);
   };
 
-  // Delete lead (Admins only)
-  const handleDeleteLead = async (id: string) => {
-    if (window.confirm("Are you sure you want to delete this lead?")) {
-      try {
-        await deleteLead(id);
-        toast.success("Lead deleted successfully!");
-        refreshAll();
-      } catch (err: any) {
+  const handleDeleteLead = async () => {
+    if (!leadToDeleteId) return;
+    try {
+      await deleteLead(leadToDeleteId);
+      toast.success("Lead deleted successfully!");
+      refreshAll();
+    } catch (err) {
+      if (err instanceof Error) {
         toast.error(err.message || "Failed to delete lead.");
+      } else {
+        toast.error("An unexpected error occurred");
       }
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setLeadToDeleteId(null);
     }
   };
 
-  // Export CSV (Admins only)
   const handleExportCSV = async () => {
     try {
       const response = await api.get("/leads/export/csv", {
@@ -282,16 +301,12 @@ const DashboardPage = () => {
 
   return (
     <div className='relative min-h-screen w-full bg-background transition-colors duration-300 overflow-x-hidden'>
-     
       <div className='absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none' />
       <div className='absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none' />
 
       <header className='sticky top-0 z-40 w-full border-b border-border/45 bg-background/80 backdrop-blur-md px-6 py-4 flex items-center justify-between transition-all duration-300'>
         <div className='flex items-center gap-2'>
-          <div className='h-9 w-9 rounded-xl bg-linear-to-tr from-primary to-blue-600 flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/20'>
-            SL
-          </div>
-          <span className='text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400'>
+          <span className='text-xl font-extrabold tracking-tight text-foreground'>
             Smart Leads
           </span>
         </div>
@@ -319,7 +334,7 @@ const DashboardPage = () => {
           <Button
             variant='outline'
             size='icon'
-            onClick={refreshAll}
+            onClick={() => refreshAll(true)}
             className='rounded-xl border-border/50 hover:bg-secondary/40 transition-colors'
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -338,9 +353,7 @@ const DashboardPage = () => {
         </div>
       </header>
 
-      {/* Main Workspace */}
       <main className='max-w-7xl mx-auto px-6 py-8 space-y-8 animate-fade-in'>
-        {/* Welcome Section */}
         <section className='bg-card/45 backdrop-blur-md border border-border/50 rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs'>
           <div className='space-y-2'>
             <div className='flex items-center gap-2 text-primary font-semibold text-sm'>
@@ -348,11 +361,7 @@ const DashboardPage = () => {
               <span>Workspace Active</span>
             </div>
             <h2 className='text-3xl font-extrabold tracking-tight'>
-              Welcome back,{" "}
-              <span className='bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400'>
-                {user?.name}
-              </span>
-              !
+              Welcome back, <span className='text-primary'>{user?.name}</span>!
             </h2>
             <p className='text-sm text-muted-foreground max-w-xl'>
               {user?.role === "sales"
@@ -373,7 +382,7 @@ const DashboardPage = () => {
             )}
             <Button
               onClick={openCreateModal}
-              className='rounded-2xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-lg shadow-primary/10 gap-2 hover:opacity-90'
+              className='rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/10 gap-2 hover:opacity-90'
             >
               <Plus className='h-4 w-4' /> Add Lead
             </Button>
@@ -465,7 +474,6 @@ const DashboardPage = () => {
           </Card>
         </section>
 
-        {/* Admin only: Salesperson Stats Breakdown List */}
         {user?.role === "admin" &&
           stats?.salespersons &&
           stats.salespersons.length > 0 && (
@@ -548,9 +556,7 @@ const DashboardPage = () => {
             </section>
           )}
 
-        {/* Lead Table and Filters workspace */}
         <section className='bg-card/45 backdrop-blur-md border border-border/50 rounded-3xl p-6 space-y-6 shadow-xs'>
-          {/* Filters Bar */}
           <div className='flex flex-col gap-4 border-b border-border/40 pb-6'>
             <h3 className='text-lg font-bold flex items-center gap-2'>
               <SlidersHorizontal className='h-4 w-4 text-blue-500' />
@@ -558,7 +564,6 @@ const DashboardPage = () => {
             </h3>
 
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3'>
-              {/* Search Bar */}
               <form
                 onSubmit={handleSearchSubmit}
                 className='relative flex items-center gap-2 lg:col-span-2'
@@ -582,7 +587,6 @@ const DashboardPage = () => {
                 </Button>
               </form>
 
-              {/* Status Select */}
               <div className='space-y-1'>
                 <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
                   Pipeline Status
@@ -603,7 +607,6 @@ const DashboardPage = () => {
                 </select>
               </div>
 
-              {/* Source Select */}
               <div className='space-y-1'>
                 <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
                   Lead Source
@@ -626,7 +629,6 @@ const DashboardPage = () => {
                 </select>
               </div>
 
-              {/* Sorting Select */}
               <div className='space-y-1'>
                 <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
                   Created Order
@@ -646,7 +648,6 @@ const DashboardPage = () => {
             </div>
 
             <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2'>
-             
               {user?.role === "admin" ? (
                 <div className='flex items-center gap-2'>
                   <span className='text-xs font-bold text-muted-foreground whitespace-nowrap'>
@@ -682,7 +683,6 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* Leads Table Container */}
           <div className='rounded-2xl border border-border/40 overflow-hidden bg-background/30 backdrop-blur-xs'>
             <Table>
               <TableHeader className='bg-secondary/30'>
@@ -806,7 +806,7 @@ const DashboardPage = () => {
                             variant='ghost'
                             size='icon'
                             onClick={() => openEditModal(lead)}
-                            className='h-8 w-8 rounded-lg hover:bg-secondary/40 text-blue-500 hover:bg-blue-500/5'
+                            className='h-8 w-8 rounded-lg hover:bg-secondary/40 text-blue-500'
                           >
                             <Edit2 className='h-4 w-4' />
                           </Button>
@@ -814,7 +814,10 @@ const DashboardPage = () => {
                             <Button
                               variant='ghost'
                               size='icon'
-                              onClick={() => handleDeleteLead(lead._id)}
+                              onClick={() => {
+                                setLeadToDeleteId(lead._id);
+                                setIsDeleteDialogOpen(true);
+                              }}
                               className='h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive'
                             >
                               <Trash2 className='h-4 w-4' />
@@ -829,7 +832,6 @@ const DashboardPage = () => {
             </Table>
           </div>
 
-          {/* Interactive Pagination */}
           {pagination.totalPages > 1 && (
             <div className='flex items-center justify-between border-t border-border/30 pt-4 px-2'>
               <span className='text-xs text-muted-foreground font-semibold'>
@@ -881,7 +883,6 @@ const DashboardPage = () => {
         </section>
       </main>
 
-      {/* dialog modal form for create / update lead */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className='max-w-md rounded-2xl bg-card border-border/50'>
           <DialogHeader>
@@ -999,7 +1000,6 @@ const DashboardPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* dialog modal view for single lead details */}
       <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
         <DialogContent className='max-w-md rounded-2xl bg-card border-border/50'>
           <DialogHeader>
@@ -1013,7 +1013,7 @@ const DashboardPage = () => {
             <div className='space-y-5 pt-3'>
               <div className='flex items-center gap-4 border-b border-border/30 pb-4'>
                 <Avatar className='h-14 w-14 shadow-md'>
-                  <AvatarFallback className='text-lg font-extrabold bg-linear-to-tr from-primary to-blue-600 text-primary-foreground'>
+                  <AvatarFallback className='text-lg font-extrabold bg-linear-to-tr from-primary via-blue-100 to-blue-200 text-primary-foreground'>
                     {getInitials(currentLead.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -1080,7 +1080,7 @@ const DashboardPage = () => {
                     Acquisition Date
                   </span>
                   <span className='font-bold text-foreground flex items-center gap-1'>
-                    <Calendar className='h-3.5 w-3.5 text-purple-500' />
+                    <Calendar className='h-3.5 w-3.5 text-blue-500' />
                     {new Date(currentLead.createdAt).toLocaleString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -1096,7 +1096,7 @@ const DashboardPage = () => {
                 <Button
                   type='button'
                   onClick={() => setIsDetailsOpen(false)}
-                  className='rounded-xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-md shadow-primary/10 w-full'
+                  className='rounded-xl bg-linear-to-r from-primary via-blue-100 to-blue-200 text-primary-foreground font-semibold shadow-md shadow-primary/10 w-full'
                 >
                   Close Insights
                 </Button>
@@ -1105,6 +1105,42 @@ const DashboardPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
+        <AlertDialogContent className='max-w-md rounded-2xl bg-card border-border/50'>
+          <AlertDialogHeader className='flex flex-col items-center text-center sm:items-center sm:text-center'>
+            <AlertDialogTitle className='text-xl flex items-center gap-2 justify-center font-bold tracking-tight text-foreground mb-1'>
+              <div className='inline-flex size-6 items-center justify-center rounded-full bg-destructive/10 text-destructive'>
+                <Trash2 className='h-5 w-5' />
+              </div>
+              Delete Lead
+            </AlertDialogTitle>
+            <AlertDialogDescription className='text-sm text-muted-foreground text-left'>
+              Are you sure you want to delete this prospect lead? This action
+              cannot be undone and the lead's information will be permanently
+              removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className='flex flex-col-reverse sm:flex-row gap-2 mt-1'>
+            <AlertDialogCancel
+              variant='ghost'
+              className='rounded-xl hover:bg-secondary/40'
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              onClick={handleDeleteLead}
+              className='rounded-xl bg-destructive text-destructive-foreground font-semibold shadow-md shadow-destructive/10 gap-2 hover:bg-destructive/90'
+            >
+              Delete Lead
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

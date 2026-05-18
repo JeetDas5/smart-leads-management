@@ -13,7 +13,7 @@ const LoginPage = () => {
 
       <div className='w-full max-w-md z-10 flex flex-col gap-4'>
         <div className='text-center space-y-2'>
-          <h1 className='text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400'>
+          <h1 className='text-3xl font-extrabold tracking-tight text-foreground'>
             Smart Leads
           </h1>
           <p className='text-sm text-muted-foreground'>

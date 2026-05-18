@@ -8,6 +8,7 @@ import {
   getSingleLeadHandler,
   updateLeadHandler,
   exportLeadsHandler,
+  getLeadsStatsHandler,
 } from "../controllers/index.js";
 
 const router = express.Router();
@@ -16,7 +17,10 @@ router.use(protect);
 
 router.get("/", getLeadsHandler);
 
+router.get("/stats", getLeadsStatsHandler);
+
 router.get("/:id", getSingleLeadHandler);
+
 
 router.post("/", authorize("admin", "sales"), createLeadHandler);
 

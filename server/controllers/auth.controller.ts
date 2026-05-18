@@ -33,3 +33,18 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     next(error);
   }
 };
+
+import { User } from "../models/index.js";
+
+export const getSalespersons = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const salespersons = await User.find({ role: "sales" }).select("name email role");
+    res.status(200).json({
+      success: true,
+      data: salespersons,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

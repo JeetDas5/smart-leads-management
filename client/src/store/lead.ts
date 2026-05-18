@@ -60,7 +60,7 @@ export interface Salesperson {
   role: string;
 }
 
-interface FetchLeadsParams {
+export interface FetchLeadsParams {
   page?: number;
   limit?: number;
   status?: string;

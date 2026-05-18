@@ -51,7 +51,11 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
       navigate({ to: "/" });
     } catch (error) {
       console.log(error);
-      toast.error(error.message || "Failed to create an account.");
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to create an account.");
+      } else {
+        toast.error("Failed to create an account.");
+      }
     }
   };
 

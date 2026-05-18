@@ -15,6 +15,7 @@ interface GetLeadsQuery {
   source?: string;
   search?: string;
   sort?: string;
+  createdBy?: string;
 }
 
 export const createLead = async (data: CreateLeadInput) => {
@@ -30,6 +31,7 @@ export const getLeads = async (query: GetLeadsQuery) => {
     source,
     search,
     sort = "latest",
+    createdBy,
   } = query;
 
   const filter: Record<string, unknown> = {};
@@ -41,6 +43,11 @@ export const getLeads = async (query: GetLeadsQuery) => {
   if (source) {
     filter.source = source;
   }
+
+  if (createdBy) {
+    filter.createdBy = createdBy;
+  }
+
 
   if (search) {
     filter.$or = [

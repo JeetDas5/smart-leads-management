@@ -42,7 +42,11 @@ export function LoginForm({
       navigate({ to: "/" });
     } catch (error) {
       console.log(error);
-      toast.error(error.message || "Failed to log in.");
+      if (error instanceof Error) {
+        toast.error(error.message || "Failed to log in.");
+      } else {
+        toast.error("Failed to log in.");
+      }
     }
   };
 
