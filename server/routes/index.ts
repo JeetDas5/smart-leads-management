@@ -1,3 +1,4 @@
-import router from "./auth.route.js";
+import authRouter from "./auth.route.js";
+import leadRouter from "./lead.route.js";
 
-export { router as authRouter };
+export { authRouter, leadRouter };

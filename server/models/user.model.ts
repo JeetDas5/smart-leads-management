@@ -17,6 +17,8 @@ const userSchema = new Schema<IUser>(
       required: true,
       unique: true,
       index: true,
+      lowercase: true,
+      trim: true,
     },
 
     password: {

@@ -5,7 +5,7 @@ import morgan from "morgan";
 import cors from "cors";
 
 import { errorMiddleware } from "./middlewares/index.js";
-import { authRouter } from "./routes/index.js";
+import { authRouter, leadRouter } from "./routes/index.js";
 
 const app = express();
 
@@ -23,6 +23,8 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+
+app.use("/api/leads", leadRouter);
 
 app.use(errorMiddleware);
 

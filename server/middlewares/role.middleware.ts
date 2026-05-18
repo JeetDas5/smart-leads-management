@@ -1,12 +1,9 @@
 import { ApiError } from "../utils/index.js";
 import type { AuthRequest } from "./auth.middleware.js";
 import type { Response, NextFunction } from "express";
-interface RolesRequest {
-  roles: string[];
-}
 
 export const authorize =
-  ({ roles }: RolesRequest) =>
+  (...roles: string[]) =>
   (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
       next(new ApiError(401, "Unauthorized"));
