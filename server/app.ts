@@ -6,6 +6,7 @@ import cors from "cors";
 
 import { errorMiddleware } from "./middlewares/index.js";
 import { authRouter, leadRouter } from "./routes/index.js";
+import { rateLimiter } from "./middlewares/index.js";
 
 const app = express();
 
@@ -14,6 +15,8 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(cookieParser());
+app.use(errorMiddleware);
+app.use(rateLimiter);
 
 app.get("/", (_req, res) => {
   res.json({
@@ -25,7 +28,5 @@ app.get("/", (_req, res) => {
 app.use("/api/auth", authRouter);
 
 app.use("/api/leads", leadRouter);
-
-app.use(errorMiddleware);
 
 export default app;
