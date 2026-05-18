@@ -18,8 +18,6 @@
     "verbatimModuleSyntax": true,
     "noEmit": false,
 
-    "ignoreDeprecations": "6.0",
-
     // Best practices
     "strict": true,
     "skipLibCheck": true,

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "nodemon --watch . --ext ts --exec bun index.ts",
+    "prebuild": "NODE_ENV=development bun install",
     "build": "tsc",
     "lint": "eslint .",
     "start": "node dist/index.js"
