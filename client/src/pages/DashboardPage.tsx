@@ -1,16 +1,92 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import * as React from "react";
 import { useAuthStore } from "@/src/store/auth";
+import { useLeadStore } from "@/src/store/lead";
+import type { Lead } from "@/src/store/lead";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { ModeToggle } from "@/components/mode-toggle";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { LogOut, User, ShieldAlert, Sparkles, TrendingUp, Users, Target } from "lucide-react";
+import {
+  LogOut,
+  User,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Target,
+  Plus,
+  Search,
+  Eye,
+  Edit2,
+  Trash2,
+  Calendar,
+  Mail,
+  Loader2,
+  RefreshCw,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
+  UserCheck,
+} from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const DashboardPage = () => {
   const { user, logout } = useAuthStore();
+  const {
+    leads,
+    pagination,
+    stats,
+    salespersons,
+    currentLead,
+    loading,
+    fetchLeads,
+    fetchStats,
+    fetchSalespersons,
+    createLead,
+    updateLead,
+    deleteLead,
+    setCurrentLead,
+  } = useLeadStore();
+
   const navigate = useNavigate();
+
+  const [search, setSearch] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [sourceFilter, setSourceFilter] = React.useState("all");
+  const [salespersonFilter, setSalespersonFilter] = React.useState("all");
+  const [sortOrder, setSortOrder] = React.useState("latest");
+  const [currentPage, setCurrentPage] = React.useState(1);
+
+  const [isFormOpen, setIsFormOpen] = React.useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = React.useState(false);
+  const [formMode, setFormMode] = React.useState<"create" | "edit">("create");
+
+  
+  const [leadName, setLeadName] = React.useState("");
+  const [leadEmail, setLeadEmail] = React.useState("");
+  const [leadStatus, setLeadStatus] = React.useState("new");
+  const [leadSource, setLeadSource] = React.useState("instagram");
+  const [editLeadId, setEditLeadId] = React.useState("");
 
   const handleLogout = () => {
     logout();
@@ -27,112 +103,1010 @@ const DashboardPage = () => {
       .slice(0, 2);
   };
 
-  return (
-    <div className="relative min-h-screen w-full bg-background transition-colors duration-300 overflow-x-hidden">
-      {/* Background gradients */}
-      <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none" />
+  React.useEffect(() => {
+    fetchStats();
+    if (user?.role === "admin") {
+      fetchSalespersons();
+    }
+  }, [user]);
 
-      {/* Modern Premium Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/80 backdrop-blur-md px-6 py-4 flex items-center justify-between transition-all duration-300">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-linear-to-tr from-primary to-blue-600 flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/20">
+  const loadLeads = () => {
+    const params: any = {
+      page: currentPage,
+      limit: 10,
+      sort: sortOrder,
+    };
+
+    if (search.trim()) {
+      params.search = search;
+    }
+    if (statusFilter !== "all") {
+      params.status = statusFilter;
+    }
+    if (sourceFilter !== "all") {
+      params.source = sourceFilter;
+    }
+    if (user?.role === "admin" && salespersonFilter !== "all") {
+      params.createdBy = salespersonFilter;
+    }
+
+    fetchLeads(params);
+  };
+
+  React.useEffect(() => {
+    loadLeads();
+  }, [
+    currentPage,
+    statusFilter,
+    sourceFilter,
+    salespersonFilter,
+    sortOrder,
+    user,
+  ]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1);
+    loadLeads();
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatusFilter("all");
+    setSourceFilter("all");
+    setSalespersonFilter("all");
+    setSortOrder("latest");
+    setCurrentPage(1);
+  };
+
+  const refreshAll = () => {
+    fetchStats();
+    loadLeads();
+    if (user?.role === "admin") {
+      fetchSalespersons();
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leadName || !leadEmail) {
+      toast.error("Please enter a name and email.");
+      return;
+    }
+
+    try {
+      if (formMode === "create") {
+        await createLead({
+          name: leadName,
+          email: leadEmail,
+          status: leadStatus,
+          source: leadSource,
+        });
+        toast.success("Lead created successfully!");
+      } else {
+        await updateLead(editLeadId, {
+          name: leadName,
+          email: leadEmail,
+          status: leadStatus,
+          source: leadSource,
+        });
+        toast.success("Lead updated successfully!");
+      }
+      setIsFormOpen(false);
+      refreshAll();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to submit form.");
+    }
+  };
+
+  // Open form in Create mode
+  const openCreateModal = () => {
+    setFormMode("create");
+    setLeadName("");
+    setLeadEmail("");
+    setLeadStatus("new");
+    setLeadSource("instagram");
+    setIsFormOpen(true);
+  };
+
+  // Open form in Edit mode
+  const openEditModal = (lead: Lead) => {
+    setFormMode("edit");
+    setEditLeadId(lead._id);
+    setLeadName(lead.name);
+    setLeadEmail(lead.email);
+    setLeadStatus(lead.status);
+    setLeadSource(lead.source);
+    setIsFormOpen(true);
+  };
+
+  // View Single Lead details
+  const openDetailsModal = (lead: Lead) => {
+    setCurrentLead(lead);
+    setIsDetailsOpen(true);
+  };
+
+  // Delete lead (Admins only)
+  const handleDeleteLead = async (id: string) => {
+    if (window.confirm("Are you sure you want to delete this lead?")) {
+      try {
+        await deleteLead(id);
+        toast.success("Lead deleted successfully!");
+        refreshAll();
+      } catch (err: any) {
+        toast.error(err.message || "Failed to delete lead.");
+      }
+    }
+  };
+
+  // Export CSV (Admins only)
+  const handleExportCSV = async () => {
+    try {
+      const response = await api.get("/leads/export/csv", {
+        responseType: "blob",
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `leads_export_${new Date().toISOString().slice(0, 10)}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("CSV export downloaded successfully!");
+    } catch (err) {
+      console.log(err);
+      toast.error("Failed to export leads.");
+    }
+  };
+
+  const getSalespersonName = (createdById: string) => {
+    const sp = salespersons.find((s) => s._id === createdById);
+    return sp ? sp.name : "Unknown Salesperson";
+  };
+
+  const totalStats =
+    user?.role === "sales" ? stats?.total : stats?.overall?.total;
+  const newStats = user?.role === "sales" ? stats?.new : stats?.overall?.new;
+  const contactedStats =
+    user?.role === "sales" ? stats?.contacted : stats?.overall?.contacted;
+  const qualifiedStats =
+    user?.role === "sales" ? stats?.qualified : stats?.overall?.qualified;
+  const lostStats = user?.role === "sales" ? stats?.lost : stats?.overall?.lost;
+  const conversionRateStats =
+    user?.role === "sales"
+      ? stats?.conversionRate
+      : stats?.overall?.conversionRate;
+
+  return (
+    <div className='relative min-h-screen w-full bg-background transition-colors duration-300 overflow-x-hidden'>
+     
+      <div className='absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none' />
+      <div className='absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none' />
+
+      <header className='sticky top-0 z-40 w-full border-b border-border/45 bg-background/80 backdrop-blur-md px-6 py-4 flex items-center justify-between transition-all duration-300'>
+        <div className='flex items-center gap-2'>
+          <div className='h-9 w-9 rounded-xl bg-linear-to-tr from-primary to-blue-600 flex items-center justify-center text-primary-foreground font-bold shadow-lg shadow-primary/20'>
             SL
           </div>
-          <span className="text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400">
+          <span className='text-xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400'>
             Smart Leads
           </span>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-3 bg-secondary/30 border border-border/50 rounded-full px-4 py-1.5 transition-all">
-            <Avatar className="h-6 w-6">
-              <AvatarFallback className="text-[10px] font-bold bg-primary text-primary-foreground">
+        <div className='flex items-center gap-4'>
+          <div className='hidden md:flex items-center gap-3 bg-secondary/35 border border-border/50 rounded-full px-4 py-1.5 transition-all'>
+            <Avatar className='h-6 w-6'>
+              <AvatarFallback className='text-[10px] font-bold bg-primary text-primary-foreground'>
                 {user ? getInitials(user.name) : "SL"}
               </AvatarFallback>
             </Avatar>
-            <div className="text-xs">
-              <span className="font-semibold text-foreground mr-1.5">{user?.name}</span>
-              <Badge variant={user?.role === "admin" ? "destructive" : "secondary"} className="text-[9px] uppercase px-1.5 py-0">
+            <div className='text-xs'>
+              <span className='font-semibold text-foreground mr-1.5'>
+                {user?.name}
+              </span>
+              <Badge
+                variant={user?.role === "admin" ? "destructive" : "secondary"}
+                className='text-[9px] uppercase px-1.5 py-0'
+              >
                 {user?.role}
               </Badge>
             </div>
           </div>
 
+          <Button
+            variant='outline'
+            size='icon'
+            onClick={refreshAll}
+            className='rounded-xl border-border/50 hover:bg-secondary/40 transition-colors'
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+
           <ModeToggle />
-          
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors">
-            <LogOut className="h-5 w-5" />
+
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={handleLogout}
+            className='rounded-xl hover:bg-destructive/10 hover:text-destructive transition-colors'
+          >
+            <LogOut className='h-5 w-5' />
           </Button>
         </div>
       </header>
 
-      {/* Main Dashboard Workspace */}
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+      {/* Main Workspace */}
+      <main className='max-w-7xl mx-auto px-6 py-8 space-y-8 animate-fade-in'>
         {/* Welcome Section */}
-        <section className="bg-card/45 backdrop-blur-md border border-border/50 rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-              <Sparkles className="h-4 w-4" />
+        <section className='bg-card/45 backdrop-blur-md border border-border/50 rounded-3xl p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xs'>
+          <div className='space-y-2'>
+            <div className='flex items-center gap-2 text-primary font-semibold text-sm'>
+              <Sparkles className='h-4 w-4' />
               <span>Workspace Active</span>
             </div>
-            <h2 className="text-3xl font-extrabold tracking-tight">
-              Welcome back, <span className="bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400">{user?.name}</span>!
+            <h2 className='text-3xl font-extrabold tracking-tight'>
+              Welcome back,{" "}
+              <span className='bg-clip-text text-transparent bg-linear-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400'>
+                {user?.name}
+              </span>
+              !
             </h2>
-            <p className="text-sm text-muted-foreground max-w-xl">
-              Here is what is happening with your lead pipe today. Connect with prospects, log conversations, and win deals.
+            <p className='text-sm text-muted-foreground max-w-xl'>
+              {user?.role === "sales"
+                ? "Here is what is happening with your lead pipe today. Connect with prospects, log conversations, and win deals."
+                : "System Administrator Control Panel. Oversee and orchestrate operations, monitor sales rep activity, and manage all leads."}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-background border border-border/50 rounded-2xl p-4 shadow-xs">
-            {user?.role === "admin" ? (
-              <ShieldAlert className="h-5 w-5 text-red-500" />
-            ) : (
-              <User className="h-5 w-5 text-blue-500" />
+          <div className='flex items-center gap-4'>
+            {user?.role === "admin" && (
+              <Button
+                onClick={handleExportCSV}
+                variant='outline'
+                className='rounded-2xl border-border/50 hover:bg-secondary/30 transition-colors gap-2'
+              >
+                Export to CSV
+              </Button>
             )}
-            <div className="text-xs">
-              <p className="font-semibold text-muted-foreground uppercase text-[10px]">Access Level</p>
-              <p className="text-foreground font-bold">{user?.role === "admin" ? "Administrator" : "Sales Representative"}</p>
-            </div>
+            <Button
+              onClick={openCreateModal}
+              className='rounded-2xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-lg shadow-primary/10 gap-2 hover:opacity-90'
+            >
+              <Plus className='h-4 w-4' /> Add Lead
+            </Button>
           </div>
         </section>
 
-        {/* Quick Analytics Widgets */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Leads</CardTitle>
-              <Target className="h-4 w-4 text-blue-500" />
+        <section className='grid grid-cols-2 lg:grid-cols-5 gap-4'>
+          <Card className='border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <span className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Total Leads
+              </span>
+              <Target className='h-4 w-4 text-blue-500' />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">124</div>
-              <p className="text-xs text-muted-foreground">+12% from last week</p>
+              <div className='text-3xl font-extrabold'>{totalStats ?? 0}</div>
+              <p className='text-[10px] text-muted-foreground mt-1'>
+                Platform lead count
+              </p>
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
+
+          <Card className='border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <span className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Conversion
+              </span>
+              <TrendingUp className='h-4 w-4 text-emerald-500' />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">24.8%</div>
-              <p className="text-xs text-muted-foreground">+2.3% since yesterday</p>
+              <div className='text-3xl font-extrabold text-emerald-600 dark:text-emerald-400'>
+                {conversionRateStats ?? 0}%
+              </div>
+              <p className='text-[10px] text-muted-foreground mt-1'>
+                Qualified leads conversion
+              </p>
             </CardContent>
           </Card>
-          <Card className="border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Team Members</CardTitle>
-              <Users className="h-4 w-4 text-purple-500" />
+
+          <Card className='border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <span className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Qualified
+              </span>
+              <Sparkles className='h-4 w-4 text-purple-500' />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8</div>
-              <p className="text-xs text-muted-foreground">Active sales agents</p>
+              <div className='text-3xl font-extrabold text-purple-600 dark:text-purple-400'>
+                {qualifiedStats ?? 0}
+              </div>
+              <p className='text-[10px] text-muted-foreground mt-1'>
+                Ready for closing
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className='border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <span className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                In Progress
+              </span>
+              <User className='h-4 w-4 text-amber-500' />
+            </CardHeader>
+            <CardContent>
+              <div className='text-3xl font-extrabold text-amber-600 dark:text-amber-400'>
+                {(newStats ?? 0) + (contactedStats ?? 0)}
+              </div>
+              <p className='text-[10px] text-muted-foreground mt-1'>
+                New & contacted prospects
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className='border-border/50 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:shadow-md col-span-2 lg:col-span-1'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+              <span className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Lost Leads
+              </span>
+              <SlidersHorizontal className='h-4 w-4 text-red-500' />
+            </CardHeader>
+            <CardContent>
+              <div className='text-3xl font-extrabold text-red-600 dark:text-red-400'>
+                {lostStats ?? 0}
+              </div>
+              <p className='text-[10px] text-muted-foreground mt-1'>
+                Disengaged contacts
+              </p>
             </CardContent>
           </Card>
         </section>
+
+        {/* Admin only: Salesperson Stats Breakdown List */}
+        {user?.role === "admin" &&
+          stats?.salespersons &&
+          stats.salespersons.length > 0 && (
+            <section className='space-y-4'>
+              <div className='flex items-center justify-between'>
+                <h3 className='text-lg font-bold tracking-tight flex items-center gap-2'>
+                  <Users className='h-5 w-5 text-blue-500' />
+                  <span>Sales Team Performance Breakdown</span>
+                </h3>
+                <Badge variant='outline' className='rounded-lg bg-secondary/20'>
+                  {stats.salespersons.length} agents active
+                </Badge>
+              </div>
+              <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
+                {stats.salespersons.map((spData) => (
+                  <Card
+                    key={spData.salesperson.id}
+                    className='border-border/50 bg-card/40 backdrop-blur-xs transition-all hover:border-blue-500/50 hover:shadow-sm'
+                  >
+                    <CardHeader className='pb-3 flex flex-row items-center gap-3'>
+                      <Avatar className='h-8 w-8'>
+                        <AvatarFallback className='bg-blue-600/10 text-blue-500 text-xs font-bold'>
+                          {getInitials(spData.salesperson.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className='space-y-0.5'>
+                        <h4 className='text-sm font-bold truncate max-w-[150px]'>
+                          {spData.salesperson.name}
+                        </h4>
+                        <p className='text-[10px] text-muted-foreground truncate max-w-[150px]'>
+                          {spData.salesperson.email}
+                        </p>
+                      </div>
+                    </CardHeader>
+                    <CardContent className='space-y-2 pt-0'>
+                      <div className='grid grid-cols-3 gap-2 text-center text-xs'>
+                        <div className='bg-secondary/20 rounded-lg py-1'>
+                          <p className='text-[10px] font-semibold text-muted-foreground uppercase'>
+                            Leads
+                          </p>
+                          <p className='font-extrabold text-foreground'>
+                            {spData.stats.total}
+                          </p>
+                        </div>
+                        <div className='bg-emerald-500/10 rounded-lg py-1'>
+                          <p className='text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase'>
+                            Qual
+                          </p>
+                          <p className='font-extrabold text-emerald-600 dark:text-emerald-400'>
+                            {spData.stats.qualified}
+                          </p>
+                        </div>
+                        <div className='bg-purple-500/10 rounded-lg py-1'>
+                          <p className='text-[10px] font-semibold text-purple-600 dark:text-purple-400 uppercase'>
+                            Conv
+                          </p>
+                          <p className='font-extrabold text-purple-600 dark:text-purple-400'>
+                            {spData.stats.conversionRate}%
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => {
+                          setSalespersonFilter(spData.salesperson.id);
+                          setCurrentPage(1);
+                          toast.info(
+                            `Filtered table to show leads by ${spData.salesperson.name}`
+                          );
+                        }}
+                        className='w-full text-[10px] py-1 h-6 rounded-md hover:bg-secondary/40 text-blue-500 font-semibold'
+                      >
+                        View Rep Leads
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+
+        {/* Lead Table and Filters workspace */}
+        <section className='bg-card/45 backdrop-blur-md border border-border/50 rounded-3xl p-6 space-y-6 shadow-xs'>
+          {/* Filters Bar */}
+          <div className='flex flex-col gap-4 border-b border-border/40 pb-6'>
+            <h3 className='text-lg font-bold flex items-center gap-2'>
+              <SlidersHorizontal className='h-4 w-4 text-blue-500' />
+              <span>Lead Workspace & Pipeline Filters</span>
+            </h3>
+
+            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3'>
+              {/* Search Bar */}
+              <form
+                onSubmit={handleSearchSubmit}
+                className='relative flex items-center gap-2 lg:col-span-2'
+              >
+                <div className='relative w-full'>
+                  <Search className='absolute left-3 top-2.5 h-4 w-4 text-muted-foreground' />
+                  <Input
+                    type='text'
+                    placeholder='Search by Name or Email...'
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className='pl-9 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors placeholder:text-muted-foreground/60'
+                  />
+                </div>
+                <Button
+                  type='submit'
+                  variant='secondary'
+                  className='rounded-xl border border-border/45 h-9 shrink-0 hover:bg-secondary/80 font-medium'
+                >
+                  Search
+                </Button>
+              </form>
+
+              {/* Status Select */}
+              <div className='space-y-1'>
+                <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
+                  Pipeline Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => {
+                    setStatusFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                >
+                  <option value='all'>All Statuses</option>
+                  <option value='new'>New</option>
+                  <option value='contacted'>Contacted</option>
+                  <option value='qualified'>Qualified</option>
+                  <option value='lost'>Lost</option>
+                </select>
+              </div>
+
+              {/* Source Select */}
+              <div className='space-y-1'>
+                <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
+                  Lead Source
+                </label>
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => {
+                    sourceFilter === "all"
+                      ? setSourceFilter(e.target.value)
+                      : setSourceFilter(e.target.value);
+                    setSourceFilter(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                >
+                  <option value='all'>All Sources</option>
+                  <option value='instagram'>Instagram</option>
+                  <option value='referral'>Referral</option>
+                  <option value='website'>Website</option>
+                </select>
+              </div>
+
+              {/* Sorting Select */}
+              <div className='space-y-1'>
+                <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
+                  Created Order
+                </label>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => {
+                    setSortOrder(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                >
+                  <option value='latest'>Latest First</option>
+                  <option value='oldest'>Oldest First</option>
+                </select>
+              </div>
+            </div>
+
+            <div className='flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2'>
+             
+              {user?.role === "admin" ? (
+                <div className='flex items-center gap-2'>
+                  <span className='text-xs font-bold text-muted-foreground whitespace-nowrap'>
+                    Filter by Rep:
+                  </span>
+                  <select
+                    value={salespersonFilter}
+                    onChange={(e) => {
+                      setSalespersonFilter(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    className='flex h-8 rounded-lg border border-border/50 bg-background/50 px-2 py-1 text-xs focus:bg-background transition-all focus-visible:outline-hidden min-w-[160px]'
+                  >
+                    <option value='all'>All Sales Persons</option>
+                    {salespersons.map((sp) => (
+                      <option key={sp._id} value={sp._id}>
+                        {sp.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div />
+              )}
+
+              <Button
+                variant='ghost'
+                onClick={handleResetFilters}
+                className='text-xs h-8 hover:bg-secondary/40 text-blue-500 font-semibold rounded-lg self-end'
+              >
+                Clear Workspace Filters
+              </Button>
+            </div>
+          </div>
+
+          {/* Leads Table Container */}
+          <div className='rounded-2xl border border-border/40 overflow-hidden bg-background/30 backdrop-blur-xs'>
+            <Table>
+              <TableHeader className='bg-secondary/30'>
+                <TableRow className='border-border/45'>
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4 pl-6'>
+                    Prospect Name
+                  </TableHead>
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4'>
+                    Email Address
+                  </TableHead>
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4'>
+                    Source
+                  </TableHead>
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4'>
+                    Status
+                  </TableHead>
+                  {user?.role === "admin" && (
+                    <TableHead className='text-xs font-bold text-muted-foreground/80 py-4'>
+                      Acquired By
+                    </TableHead>
+                  )}
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4'>
+                    Acquisition Date
+                  </TableHead>
+                  <TableHead className='text-xs font-bold text-muted-foreground/80 py-4 text-right pr-6'>
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={user?.role === "admin" ? 7 : 6}
+                      className='h-32 text-center'
+                    >
+                      <div className='flex flex-col items-center justify-center gap-2'>
+                        <Loader2 className='h-6 w-6 animate-spin text-blue-500' />
+                        <span className='text-xs text-muted-foreground font-semibold'>
+                          Querying pipeline data...
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : leads.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={user?.role === "admin" ? 7 : 6}
+                      className='h-32 text-center'
+                    >
+                      <p className='text-sm font-semibold text-muted-foreground'>
+                        No leads found matching current filter options.
+                      </p>
+                      <Button
+                        variant='link'
+                        onClick={handleResetFilters}
+                        className='text-xs text-blue-500 font-bold p-0 mt-1'
+                      >
+                        Reset active filters
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  leads.map((lead) => (
+                    <TableRow
+                      key={lead._id}
+                      className='border-border/45 hover:bg-secondary/15 transition-colors'
+                    >
+                      <TableCell className='font-bold py-3.5 pl-6'>
+                        {lead.name}
+                      </TableCell>
+                      <TableCell className='text-muted-foreground py-3.5 font-medium'>
+                        {lead.email}
+                      </TableCell>
+                      <TableCell className='py-3.5'>
+                        <Badge
+                          variant='outline'
+                          className='text-[10px] font-semibold bg-secondary/10 uppercase border-border/50 py-0.5 px-2'
+                        >
+                          {lead.source}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className='py-3.5'>
+                        <Badge
+                          className={`text-[9px] font-bold uppercase tracking-wider py-0.5 px-2.5 rounded-full ${
+                            lead.status === "new"
+                              ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                              : lead.status === "contacted"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : lead.status === "qualified"
+                              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                          }`}
+                        >
+                          {lead.status}
+                        </Badge>
+                      </TableCell>
+                      {user?.role === "admin" && (
+                        <TableCell className='py-3.5 font-semibold text-xs text-foreground'>
+                          {getSalespersonName(lead.createdBy)}
+                        </TableCell>
+                      )}
+                      <TableCell className='text-muted-foreground text-xs font-semibold py-3.5'>
+                        {new Date(lead.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </TableCell>
+                      <TableCell className='py-3.5 text-right pr-6'>
+                        <div className='flex items-center justify-end gap-1.5'>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => openDetailsModal(lead)}
+                            className='h-8 w-8 rounded-lg hover:bg-secondary/40 text-muted-foreground hover:text-foreground'
+                          >
+                            <Eye className='h-4 w-4' />
+                          </Button>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            onClick={() => openEditModal(lead)}
+                            className='h-8 w-8 rounded-lg hover:bg-secondary/40 text-blue-500 hover:bg-blue-500/5'
+                          >
+                            <Edit2 className='h-4 w-4' />
+                          </Button>
+                          {user?.role === "admin" && (
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              onClick={() => handleDeleteLead(lead._id)}
+                              className='h-8 w-8 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive'
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Interactive Pagination */}
+          {pagination.totalPages > 1 && (
+            <div className='flex items-center justify-between border-t border-border/30 pt-4 px-2'>
+              <span className='text-xs text-muted-foreground font-semibold'>
+                Showing {leads.length} of {pagination.total} leads (Page{" "}
+                {pagination.page} of {pagination.totalPages})
+              </span>
+              <div className='flex items-center gap-2'>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={pagination.page === 1}
+                  className='rounded-lg border-border/50 h-8 gap-1'
+                >
+                  <ChevronLeft className='h-4 w-4' /> Previous
+                </Button>
+
+                {Array.from({ length: pagination.totalPages }).map((_, idx) => {
+                  const pNum = idx + 1;
+                  return (
+                    <Button
+                      key={pNum}
+                      variant={pagination.page === pNum ? "default" : "outline"}
+                      size='sm'
+                      onClick={() => setCurrentPage(pNum)}
+                      className={`h-8 w-8 rounded-lg border-border/50 text-xs font-bold`}
+                    >
+                      {pNum}
+                    </Button>
+                  );
+                })}
+
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setCurrentPage((p) =>
+                      Math.min(p + 1, pagination.totalPages)
+                    )
+                  }
+                  disabled={pagination.page === pagination.totalPages}
+                  className='rounded-lg border-border/50 h-8 gap-1'
+                >
+                  Next <ChevronRight className='h-4 w-4' />
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* dialog modal form for create / update lead */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className='max-w-md rounded-2xl bg-card border-border/50'>
+          <DialogHeader>
+            <DialogTitle className='text-xl font-bold tracking-tight'>
+              {formMode === "create"
+                ? "Add Prospect Lead"
+                : "Edit Lead Details"}
+            </DialogTitle>
+            <DialogDescription className='text-xs text-muted-foreground'>
+              Provide necessary lead data below. Leads can be updated at any
+              point inside the workspace.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit} className='space-y-4 pt-3'>
+            <div className='space-y-1'>
+              <label
+                htmlFor='form-name'
+                className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
+              >
+                Full Name
+              </label>
+              <Input
+                id='form-name'
+                type='text'
+                placeholder='Jane Smith'
+                value={leadName}
+                onChange={(e) => setLeadName(e.target.value)}
+                disabled={loading}
+                required
+                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors'
+              />
+            </div>
+
+            <div className='space-y-1'>
+              <label
+                htmlFor='form-email'
+                className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
+              >
+                Email Address
+              </label>
+              <Input
+                id='form-email'
+                type='email'
+                placeholder='jane.smith@example.com'
+                value={leadEmail}
+                onChange={(e) => setLeadEmail(e.target.value)}
+                disabled={loading}
+                required
+                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors'
+              />
+            </div>
+
+            <div className='grid grid-cols-2 gap-3'>
+              <div className='space-y-1'>
+                <label
+                  htmlFor='form-source'
+                  className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
+                >
+                  Source
+                </label>
+                <select
+                  id='form-source'
+                  value={leadSource}
+                  onChange={(e) => setLeadSource(e.target.value)}
+                  disabled={loading}
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                >
+                  <option value='instagram'>Instagram</option>
+                  <option value='referral'>Referral</option>
+                  <option value='website'>Website</option>
+                </select>
+              </div>
+
+              <div className='space-y-1'>
+                <label
+                  htmlFor='form-status'
+                  className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
+                >
+                  Pipeline Status
+                </label>
+                <select
+                  id='form-status'
+                  value={leadStatus}
+                  onChange={(e) => setLeadStatus(e.target.value)}
+                  disabled={loading}
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                >
+                  <option value='new'>New</option>
+                  <option value='contacted'>Contacted</option>
+                  <option value='qualified'>Qualified</option>
+                  <option value='lost'>Lost</option>
+                </select>
+              </div>
+            </div>
+
+            <DialogFooter className='pt-4 border-t border-border/30'>
+              <Button
+                type='button'
+                variant='ghost'
+                onClick={() => setIsFormOpen(false)}
+                className='rounded-xl hover:bg-secondary/40'
+              >
+                Cancel
+              </Button>
+              <Button
+                type='submit'
+                disabled={loading}
+                className='rounded-xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-md shadow-primary/10 gap-2'
+              >
+                {loading && <Loader2 className='h-4 w-4 animate-spin' />}
+                {formMode === "create" ? "Create Lead" : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* dialog modal view for single lead details */}
+      <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+        <DialogContent className='max-w-md rounded-2xl bg-card border-border/50'>
+          <DialogHeader>
+            <DialogTitle className='text-xl font-bold tracking-tight flex items-center gap-2'>
+              <Target className='h-5 w-5 text-blue-500' />
+              <span>Prospect Lead Insights</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {currentLead && (
+            <div className='space-y-5 pt-3'>
+              <div className='flex items-center gap-4 border-b border-border/30 pb-4'>
+                <Avatar className='h-14 w-14 shadow-md'>
+                  <AvatarFallback className='text-lg font-extrabold bg-linear-to-tr from-primary to-blue-600 text-primary-foreground'>
+                    {getInitials(currentLead.name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h4 className='text-lg font-extrabold'>{currentLead.name}</h4>
+                  <p className='text-xs text-muted-foreground font-semibold flex items-center gap-1.5 mt-0.5'>
+                    <Mail className='h-3.5 w-3.5 text-muted-foreground/80' />
+                    <span>{currentLead.email}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className='grid grid-cols-2 gap-4'>
+                <div className='bg-secondary/15 rounded-2xl p-3 border border-border/40'>
+                  <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider'>
+                    Pipeline Status
+                  </p>
+                  <div className='mt-1'>
+                    <Badge
+                      className={`text-[9px] font-bold uppercase tracking-wider py-0.5 px-2.5 rounded-full ${
+                        currentLead.status === "new"
+                          ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                          : currentLead.status === "contacted"
+                          ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                          : currentLead.status === "qualified"
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                          : "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20"
+                      }`}
+                    >
+                      {currentLead.status}
+                    </Badge>
+                  </div>
+                </div>
+
+                <div className='bg-secondary/15 rounded-2xl p-3 border border-border/40'>
+                  <p className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider'>
+                    Acquisition Source
+                  </p>
+                  <div className='mt-1'>
+                    <Badge
+                      variant='outline'
+                      className='text-[10px] font-semibold bg-secondary/10 uppercase border-border/50 py-0.5 px-2'
+                    >
+                      {currentLead.source}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <div className='space-y-2 text-xs bg-secondary/15 border border-border/40 rounded-2xl p-4'>
+                <div className='flex items-center justify-between border-b border-border/20 pb-2'>
+                  <span className='font-semibold text-muted-foreground'>
+                    Acquired By
+                  </span>
+                  <span className='font-bold text-foreground flex items-center gap-1'>
+                    <UserCheck className='h-3.5 w-3.5 text-blue-500' />
+                    {user?.role === "admin"
+                      ? getSalespersonName(currentLead.createdBy)
+                      : user?.name}
+                  </span>
+                </div>
+                <div className='flex items-center justify-between pt-1'>
+                  <span className='font-semibold text-muted-foreground'>
+                    Acquisition Date
+                  </span>
+                  <span className='font-bold text-foreground flex items-center gap-1'>
+                    <Calendar className='h-3.5 w-3.5 text-purple-500' />
+                    {new Date(currentLead.createdAt).toLocaleString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              </div>
+
+              <DialogFooter className='pt-3 border-t border-border/30'>
+                <Button
+                  type='button'
+                  onClick={() => setIsDetailsOpen(false)}
+                  className='rounded-xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-md shadow-primary/10 w-full'
+                >
+                  Close Insights
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default DashboardPage;
+export default DashboardPage;
