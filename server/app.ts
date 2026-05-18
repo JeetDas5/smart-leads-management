@@ -4,6 +4,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import cors from "cors";
 
+import { errorMiddleware } from "./middlewares/index.js";
+import { authRouter } from "./routes/index.js";
+
 const app = express();
 
 app.use(cors());
@@ -18,5 +21,9 @@ app.get("/", (_req, res) => {
     success: true,
   });
 });
+
+app.use("/api/auth", authRouter);
+
+app.use(errorMiddleware);
 
 export default app;

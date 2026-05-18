@@ -1,2 +1,4 @@
-export * from "./lead.model.js";
-export * from "./user.model.js";
+import User from "./user.model.js";
+import Lead from "./lead.model.js";
+
+export { User, Lead };
