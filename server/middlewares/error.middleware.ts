@@ -1,12 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
-import ApiError from "../utils/ApiError.js";
+import ApiError from "../utils/api-error.js";
 
 export const errorMiddleware = (
   error: Error,
   _req: Request,
   res: Response,
-  _next: NextFunction,
+  _next: NextFunction
 ) => {
   void _next;
 
