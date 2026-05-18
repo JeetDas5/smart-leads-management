@@ -1,8 +1,8 @@
+import cookieParser from "cookie-parser";
 import express from "express";
-import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import cookieParser from "cookie-parser";
+import cors from "cors";
 
 const app = express();
 
@@ -14,8 +14,8 @@ app.use(cookieParser());
 
 app.get("/", (_req, res) => {
   res.json({
-    success: true,
     message: "Smart Leads API Running",
+    success: true,
   });
 });
 

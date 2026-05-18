@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "nodemon --watch . --ext ts --exec bun index.ts",
     "build": "tsc",
+    "lint": "eslint .",
     "start": "node dist/index.js"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "latest",
     "@types/cookie-parser": "^1.4.10",
@@ -17,16 +19,23 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.8.0",
-    "ts-node-dev": "^2.0.0"
+    "eslint": "^10.4.0",
+    "globals": "^17.6.0",
+    "jiti": "^2.7.0",
+    "prettier": "^3.8.3",
+    "ts-node-dev": "^2.0.0",
+    "typescript-eslint": "^8.59.3"
   },
   "peerDependencies": {
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@tsconfig/node22": "^22.0.5",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
+    "eslint-plugin-perfectionist": "^5.9.0",
     "express": "^5.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
