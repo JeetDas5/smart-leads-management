@@ -1,8 +1,6 @@
-import { Document } from "mongoose";
-
 import { LeadSource, LeadStatus } from "../constants/index.js";
 
-export interface ILead extends Document {
+export interface ILead {
   name: string;
   email: string;
 

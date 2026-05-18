@@ -19,7 +19,10 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-export function SignupForm({ className, ...props }: React.ComponentProps<typeof Card>) {
+export function SignupForm({
+  className,
+  ...props
+}: React.ComponentProps<typeof Card>) {
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -101,18 +104,21 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
                 disabled={loading}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:bg-card dark:text-foreground [&>option]:bg-card [&>option]:text-foreground"
+                className='flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 dark:bg-card dark:text-foreground [&>option]:bg-card [&>option]:text-foreground'
               >
-                <option value="sales">Sales Representative</option>
-                <option value="admin">Administrator</option>
+                <option value='sales'>Sales Representative</option>
+                <option value='admin'>Administrator</option>
               </select>
-              <FieldDescription>Choose your account type on the platform.</FieldDescription>
+              <FieldDescription>
+                Choose your account type on the platform.
+              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor='password'>Password</FieldLabel>
               <Input
                 id='password'
                 type='password'
+                placeholder='******'
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
@@ -138,8 +144,12 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
             </Field>
             <FieldGroup>
               <Field>
-                <Button type='submit' disabled={loading} className="w-full flex items-center justify-center gap-2">
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Button
+                  type='submit'
+                  disabled={loading}
+                  className='w-full flex items-center justify-center gap-2'
+                >
+                  {loading && <Loader2 className='h-4 w-4 animate-spin' />}
                   Create Account
                 </Button>
                 <FieldDescription className='px-6 text-center w-full'>
@@ -153,4 +163,3 @@ export function SignupForm({ className, ...props }: React.ComponentProps<typeof 
     </Card>
   );
 }
-

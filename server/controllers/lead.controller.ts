@@ -187,7 +187,7 @@ export const exportLeadsHandler = async (_req: Request, res: Response) => {
 };
 
 import { Lead, User } from "../models/index.js";
-import { LeadStatus } from "../constants/enum.js";
+import { LeadStatus, UserRole } from "../constants/enum.js";
 
 export const getLeadsStatsHandler = async (
   req: AuthRequest,
@@ -226,7 +226,7 @@ export const getLeadsStatsHandler = async (
     }
 
     // For admins: return overall stats + breakdown of every salesperson
-    const salespersons = await User.find({ role: "sales" }).select("name email");
+    const salespersons = await User.find({ role: UserRole.SALES }).select("name email");
 
     const [overallTotal, overallNew, overallContacted, overallQualified, overallLost] = await Promise.all([
       Lead.countDocuments(),

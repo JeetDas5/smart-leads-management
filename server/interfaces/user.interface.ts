@@ -1,7 +1,6 @@
-import { Document } from "mongoose";
 import { UserRole } from "../constants/index.js";
 
-export interface IUser extends Document {
+export interface IUser {
   name: string;
   email: string;
   password: string;
