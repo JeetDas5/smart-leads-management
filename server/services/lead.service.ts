@@ -23,7 +23,14 @@ export const createLead = async (data: CreateLeadInput) => {
 };
 
 export const getLeads = async (query: GetLeadsQuery) => {
-  const { page = 1, limit = 10, status, source, search, sort = "latest" } = query;
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    source,
+    search,
+    sort = "latest",
+  } = query;
 
   const filter: Record<string, unknown> = {};
 
@@ -52,11 +59,15 @@ export const getLeads = async (query: GetLeadsQuery) => {
     ];
   }
 
-  const sortOption: Record<string, 1 | -1> = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
+  const sortOption: Record<string, 1 | -1> =
+    sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
 
   const skip = (page - 1) * limit;
 
-  const [leads, total] = await Promise.all([Lead.find(filter).sort(sortOption).skip(skip).limit(limit), Lead.countDocuments(filter)]);
+  const [leads, total] = await Promise.all([
+    Lead.find(filter).sort(sortOption).skip(skip).limit(limit),
+    Lead.countDocuments(filter),
+  ]);
 
   return {
     leads,
@@ -82,4 +93,8 @@ export const updateLead = async (id: string, data: Record<string, unknown>) => {
 
 export const deleteLead = async (id: string) => {
   return await Lead.findByIdAndDelete(id);
+};
+
+export const exportLeadsToCSV = async () => {
+  return await Lead.find().lean();
 };

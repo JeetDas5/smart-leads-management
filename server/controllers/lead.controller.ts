@@ -1,10 +1,22 @@
+import { Parser } from "json2csv";
 import { ApiError } from "../utils/index.js";
 import { type AuthRequest } from "../middlewares/index.js";
 import type { Request, Response, NextFunction } from "express";
 import { createLeadSchema, updateLeadSchema } from "../validators/index.js";
-import { createLead, deleteLead, getLeads, getSingleLead, updateLead } from "../services/index.js";
+import {
+  createLead,
+  deleteLead,
+  exportLeadsToCSV,
+  getLeads,
+  getSingleLead,
+  updateLead,
+} from "../services/index.js";
 
-export const createLeadHandler = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const createLeadHandler = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     if (!req.user) {
       throw new ApiError(401, "Unauthorized");
@@ -26,7 +38,11 @@ export const createLeadHandler = async (req: AuthRequest, res: Response, next: N
   }
 };
 
-export const getLeadsHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const getLeadsHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const data = await getLeads({
       page: Number(req.query.page) || 1,
@@ -51,7 +67,11 @@ export const getLeadsHandler = async (req: Request, res: Response, next: NextFun
   }
 };
 
-export const getSingleLeadHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const getSingleLeadHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     if (!req.params.id) {
       throw new ApiError(400, "Lead ID is required");
@@ -78,7 +98,11 @@ export const getSingleLeadHandler = async (req: Request, res: Response, next: Ne
   }
 };
 
-export const updateLeadHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const updateLeadHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     if (!req.params.id) {
       throw new ApiError(400, "Lead ID is required");
@@ -107,7 +131,11 @@ export const updateLeadHandler = async (req: Request, res: Response, next: NextF
   }
 };
 
-export const deleteLeadHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteLeadHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const leadId = req.params.id;
 
@@ -128,4 +156,22 @@ export const deleteLeadHandler = async (req: Request, res: Response, next: NextF
   } catch (error) {
     next(error);
   }
+};
+
+export const exportLeadsHandler = async (_req: Request, res: Response) => {
+  const leads = await exportLeadsToCSV();
+
+  const fields = ["name", "email", "status", "source", "createdAt"];
+
+  const parser = new Parser({
+    fields,
+  });
+
+  const csv = parser.parse(leads);
+
+  res.header("Content-Type", "text/csv");
+
+  res.attachment("leads.csv");
+
+  return res.send(csv);
 };
