@@ -3,6 +3,11 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "nodemon --watch . --ext ts --exec bun index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
     "@types/bun": "latest",
@@ -27,6 +32,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.6.2",
     "morgan": "^1.10.1",
+    "nodemon": "^3.1.14",
     "zod": "^4.4.3"
   }
 }
