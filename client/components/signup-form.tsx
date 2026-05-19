@@ -1,4 +1,7 @@
-import * as React from "react";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -15,19 +18,17 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/src/store/auth";
-import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<typeof Card>) {
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [confirmPassword, setConfirmPassword] = React.useState("");
-  const [role, setRole] = React.useState("sales");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState("sales");
+
   const { register, loading } = useAuthStore();
   const navigate = useNavigate();
 
@@ -78,7 +79,7 @@ export function SignupForm({
               <Input
                 id='name'
                 type='text'
-                placeholder='John Doe'
+                placeholder='Jeet Das'
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={loading}
@@ -90,7 +91,7 @@ export function SignupForm({
               <Input
                 id='email'
                 type='email'
-                placeholder='m@example.com'
+                placeholder='jeet@email.com'
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
@@ -135,6 +136,7 @@ export function SignupForm({
               <Input
                 id='confirm-password'
                 type='password'
+                placeholder='******'
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}

@@ -1,6 +1,7 @@
-import * as React from "react";
+import { toast } from "sonner";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,18 +17,19 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/src/store/auth";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const { login, loading } = useAuthStore();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
   const navigate = useNavigate();
+  const { login, loading } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,15 +80,29 @@ export function LoginForm({
                 <div className='flex items-center'>
                   <FieldLabel htmlFor='password'>Password</FieldLabel>
                 </div>
-                <Input
-                  id='password'
-                  type='password'
-                  placeholder="******"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <div className='flex flex-row justify-between items-center gap-2'>
+                  <Input
+                    id='password'
+                    type={showPassword ? "text" : "password"}
+                    placeholder='******'
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <Eye className='h-4 w-4' />
+                    ) : (
+                      <EyeOff className='h-4 w-4' />
+                    )}
+                  </Button>
+                </div>
               </Field>
               <Field>
                 <Button

@@ -81,6 +81,7 @@ const DashboardPage = () => {
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [salespersonFilter, setSalespersonFilter] = useState("all");
@@ -115,6 +116,17 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+    }, 500);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
+
+  useEffect(() => {
     fetchStats();
     if (user?.role === "admin") {
       fetchSalespersons();
@@ -128,8 +140,8 @@ const DashboardPage = () => {
       sort: sortOrder,
     };
 
-    if (search.trim()) {
-      params.search = search;
+    if (debouncedSearch.trim()) {
+      params.search = debouncedSearch;
     }
     if (statusFilter !== "all") {
       params.status = statusFilter;
@@ -153,13 +165,8 @@ const DashboardPage = () => {
     salespersonFilter,
     sortOrder,
     user,
+    debouncedSearch,
   ]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setCurrentPage(1);
-    loadLeads();
-  };
 
   const handleResetFilters = () => {
     setSearch("");
@@ -300,7 +307,7 @@ const DashboardPage = () => {
       : stats?.overall?.conversionRate;
 
   return (
-    <div className='relative min-h-screen w-full bg-background transition-colors duration-300 overflow-x-hidden'>
+    <div className='relative min-h-screen w-full bg-background transition-colors duration-300 overflow-hidden scroll-smooth'>
       <div className='absolute top-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/5 blur-[120px] pointer-events-none' />
       <div className='absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-500/5 blur-[120px] pointer-events-none' />
 
@@ -564,10 +571,7 @@ const DashboardPage = () => {
             </h3>
 
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3'>
-              <form
-                onSubmit={handleSearchSubmit}
-                className='relative flex items-center gap-2 lg:col-span-2'
-              >
+              <div className='relative flex items-center lg:col-span-2 mt-6'>
                 <div className='relative w-full'>
                   <Search className='absolute left-3 top-2.5 h-4 w-4 text-muted-foreground' />
                   <Input
@@ -578,14 +582,7 @@ const DashboardPage = () => {
                     className='pl-9 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors placeholder:text-muted-foreground/60'
                   />
                 </div>
-                <Button
-                  type='submit'
-                  variant='secondary'
-                  className='rounded-xl border border-border/45 h-9 shrink-0 hover:bg-secondary/80 font-medium'
-                >
-                  Search
-                </Button>
-              </form>
+              </div>
 
               <div className='space-y-1'>
                 <label className='text-[10px] font-bold text-muted-foreground uppercase tracking-wider ml-1'>
@@ -896,8 +893,8 @@ const DashboardPage = () => {
               point inside the workspace.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleFormSubmit} className='space-y-4 pt-3'>
-            <div className='space-y-1'>
+          <form onSubmit={handleFormSubmit} className='space-y-4'>
+            <div className='space-y-2'>
               <label
                 htmlFor='form-name'
                 className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
@@ -912,11 +909,11 @@ const DashboardPage = () => {
                 onChange={(e) => setLeadName(e.target.value)}
                 disabled={loading}
                 required
-                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors'
+                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors mt-1'
               />
             </div>
 
-            <div className='space-y-1'>
+            <div className='space-y-2'>
               <label
                 htmlFor='form-email'
                 className='text-xs font-bold text-muted-foreground uppercase tracking-wider ml-1'
@@ -931,7 +928,7 @@ const DashboardPage = () => {
                 onChange={(e) => setLeadEmail(e.target.value)}
                 disabled={loading}
                 required
-                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors'
+                className='rounded-xl border-border/50 bg-background/50 focus:bg-background transition-colors mt-1'
               />
             </div>
 
@@ -948,7 +945,7 @@ const DashboardPage = () => {
                   value={leadSource}
                   onChange={(e) => setLeadSource(e.target.value)}
                   disabled={loading}
-                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden mt-1'
                 >
                   <option value='instagram'>Instagram</option>
                   <option value='referral'>Referral</option>
@@ -968,7 +965,7 @@ const DashboardPage = () => {
                   value={leadStatus}
                   onChange={(e) => setLeadStatus(e.target.value)}
                   disabled={loading}
-                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden'
+                  className='flex h-9 w-full rounded-xl border border-border/50 bg-background/50 px-3 py-1.5 text-xs focus:bg-background transition-colors focus-visible:outline-hidden mt-1'
                 >
                   <option value='new'>New</option>
                   <option value='contacted'>Contacted</option>
@@ -990,7 +987,7 @@ const DashboardPage = () => {
               <Button
                 type='submit'
                 disabled={loading}
-                className='rounded-xl bg-linear-to-r from-primary to-blue-600 text-primary-foreground font-semibold shadow-md shadow-primary/10 gap-2'
+                className='rounded-xl bg-linear-to-r dark:from-primary dark:via-blue-100 dark:to-blue-200 text-primary-foreground font-semibold shadow-md shadow-primary/10 gap-2'
               >
                 {loading && <Loader2 className='h-4 w-4 animate-spin' />}
                 {formMode === "create" ? "Create Lead" : "Save Changes"}
@@ -1013,7 +1010,7 @@ const DashboardPage = () => {
             <div className='space-y-5 pt-3'>
               <div className='flex items-center gap-4 border-b border-border/30 pb-4'>
                 <Avatar className='h-14 w-14 shadow-md'>
-                  <AvatarFallback className='text-lg font-extrabold bg-linear-to-tr from-primary via-blue-100 to-blue-200 text-primary-foreground'>
+                  <AvatarFallback className='text-lg font-extrabold dark:bg-linear-to-tr dark:from-primary dark:via-blue-100 dark:to-blue-200 dark:text-primary-foreground'>
                     {getInitials(currentLead.name)}
                   </AvatarFallback>
                 </Avatar>
@@ -1096,7 +1093,7 @@ const DashboardPage = () => {
                 <Button
                   type='button'
                   onClick={() => setIsDetailsOpen(false)}
-                  className='rounded-xl bg-linear-to-r from-primary via-blue-100 to-blue-200 text-primary-foreground font-semibold shadow-md shadow-primary/10 w-full'
+                  className='rounded-xl dark:bg-linear-to-r dark:from-primary dark:via-blue-100 dark:to-blue-200 dark:text-primary-foreground font-semibold shadow-md shadow-primary/10 w-full'
                 >
                   Close Insights
                 </Button>
