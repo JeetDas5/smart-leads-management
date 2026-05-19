@@ -8,7 +8,7 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38B2AC?style=flat-square&logo=tailwindcss)](https://tailwindcss.com)
 [![Bun](https://img.shields.io/badge/Bun-v1.x-black?style=flat-square&logo=bun)](https://bun.sh)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-blue?style=flat-square&logo=docker)](https://www.docker.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+
 
 A premium, state-of-the-art Smart Leads Management System designed for high-performance sales teams. This platform enables seamless organization of customer leads, rich analytics visualizations, and secure role-based access. Featuring a gorgeous modern interface with glassmorphism, responsive dashboards, instant debounced searching, and containerized Docker support.
 
