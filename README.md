@@ -78,7 +78,7 @@ smart-leads-management/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml             # GitHub Actions CI Workflow Configuration
-├── client/                     # Vite + React Frontend SPA
+├── client/                    # Vite + React Frontend SPA
 │   ├── src/
 │   │   ├── components/        # Reusable UI Elements (Shadcn/custom)
 │   │   ├── pages/             # Dashboard, Login, and Register Pages

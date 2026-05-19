@@ -1131,7 +1131,7 @@ const DashboardPage = () => {
             <AlertDialogAction
               variant='destructive'
               onClick={handleDeleteLead}
-              className='rounded-xl bg-destructive text-destructive-foreground font-semibold shadow-md shadow-destructive/10 gap-2 hover:bg-destructive/90'
+              className='rounded-xl bg-destructive text-destructive-foreground font-semibold shadow-md shadow-destructive/10 gap-2 hover:bg-destructive/90 hover:text-white  dark:hover:text-destructive'
             >
               Delete Lead
             </AlertDialogAction>
