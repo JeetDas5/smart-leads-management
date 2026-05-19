@@ -88,7 +88,7 @@ smart-leads-management/
 │   │   └── main.tsx           # Entrypoint
 │   ├── Dockerfile             # Multi-stage Docker config for Client
 │   └── package.json           # Frontend dependencies
-├── server/                     # Node/Express Backend API
+├── server/                    # Node/Express Backend API
 │   ├── config/                # Database connection configuration
 │   ├── constants/             # Shared Enum constants (LeadSource, LeadStatus, UserRole)
 │   ├── controllers/           # API request handlers
@@ -98,7 +98,7 @@ smart-leads-management/
 │   ├── Dockerfile             # Docker config for Express API
 │   └── package.json           # Backend dependencies
 ├── docker-compose.yml         # Local environment container orchestrator
-└── README.md                  # 
+└── README.md                  # Project Documentation
 ```
 
 ---
